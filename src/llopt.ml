@@ -34,11 +34,24 @@ let optimize ~level ~lto m =
   ignore (Llvm.PassManager.run_module m pm);
   Llvm.PassManager.dispose pm
 
-let () = match Sys.argv with
-  | [|_; file|] ->
-      let buf = Llvm.MemoryBuffer.of_file file in
-      let m = Llvm_irreader.parse_ir ctxt buf in
-      optimize ~level:3 ~lto:true m;
-      Llvm.dump_module m;
-  | _ ->
-      assert false
+let main file =
+  let buf = Llvm.MemoryBuffer.of_file file in
+  let m = Llvm_irreader.parse_ir ctxt buf in
+  optimize ~level:3 ~lto:true m;
+  Llvm.dump_module m
+
+let term =
+  let ($) = Cmdliner.Term.($) in
+  Cmdliner.Term.pure main $
+  Cmdliner.Arg.(required & pos 0 (some string) None & info ~docv:"FILE" [])
+
+let info =
+  Cmdliner.Term.info
+    ~doc:"Just a tiny LLVM-IR optimizer for testing stuff"
+    ~version:"%%VERSION%%"
+    "%%NAME%%"
+
+let () =
+  match Cmdliner.Term.eval_choice (term, info) [] with
+  | `Help | `Version | `Ok () -> ()
+  | `Error (`Exn | `Parse | `Term) -> exit 1
