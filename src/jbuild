@@ -1,0 +1,6 @@
+(jbuild_version 1)
+
+(executable
+  ((name llopt)
+   (public_name llopt)
+   (libraries (cmdliner llvm llvm.irreader llvm.passmgr_builder llvm.target llvm.all_backends))))
