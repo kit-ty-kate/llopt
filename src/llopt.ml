@@ -34,16 +34,25 @@ let optimize ~level ~lto m =
   ignore (Llvm.PassManager.run_module m pm);
   Llvm.PassManager.dispose pm
 
-let main file =
+let main level lto file =
   let buf = Llvm.MemoryBuffer.of_file file in
   let m = Llvm_irreader.parse_ir ctxt buf in
-  optimize ~level:3 ~lto:true m;
+  begin match level with
+  | (0 | 1 | 2 | 3) as level -> optimize ~level ~lto m
+  | -1 -> ()
+  | n -> Printf.eprintf "Error: %d is not a valid optimization level." n
+  end;
   Llvm.dump_module m
 
 let term =
   let ($) = Cmdliner.Term.($) in
+  let doc_opt = "Sets the optimization level. \
+                 Setting it to -1 disables all optimizations." in
+  let doc_lto = "Enables Link Time Optimizations." in
   Cmdliner.Term.pure main $
-  Cmdliner.Arg.(required & pos 0 (some string) None & info ~docv:"FILE" [])
+  Cmdliner.Arg.(value & opt int 0 & info ~doc:doc_opt ["opt"]) $
+  Cmdliner.Arg.(value & flag & info ~doc:doc_lto ["lto"]) $
+  Cmdliner.Arg.(required & pos 0 (some file) None & info ~docv:"FILE" [])
 
 let info =
   Cmdliner.Term.info
