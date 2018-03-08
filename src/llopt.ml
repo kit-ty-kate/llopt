@@ -63,6 +63,6 @@ let info =
     Config.name
 
 let () =
-  match Cmdliner.Term.eval_choice (term, info) [] with
+  match Cmdliner.Term.eval (term, info) with
   | `Help | `Version | `Ok () -> ()
   | `Error (`Exn | `Parse | `Term) -> exit 1
