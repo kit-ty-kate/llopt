@@ -56,7 +56,9 @@ let term =
 
 let info =
   Cmdliner.Term.info
-    ~doc:"Just a tiny LLVM-IR optimizer for testing stuff"
+    ~doc:"Just a tiny LLVM-IR optimizer for testing stuff."
+    ~man:[`P "This program just takes a LLVM-IR file (.ll) as input and dumps \
+              the optimized LLVM-IR module in the standard output."]
     ~version:Config.version
     Config.name
 
