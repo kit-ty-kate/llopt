@@ -1,5 +1,4 @@
 opam-version: "1.2"
-name: "llopt"
 version: "0.1~"
 license: "MIT"
 maintainer: "Kate <jp.deplaix@gmail.com>"
@@ -11,6 +10,6 @@ tags: ["llvm" "optimization" "test" "testing" "compiler"]
 build: ["jbuilder" "build" "-p" "llopt"]
 depends: [
   "jbuilder" {build}
-  "llvm"
+  "llvm" {>= "3.5"}
   "cmdliner"
 ]
