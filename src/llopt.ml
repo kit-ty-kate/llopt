@@ -57,8 +57,8 @@ let term =
 let info =
   Cmdliner.Term.info
     ~doc:"Just a tiny LLVM-IR optimizer for testing stuff"
-    ~version:"%%VERSION%%"
-    "%%NAME%%"
+    ~version:Config.version
+    Config.name
 
 let () =
   match Cmdliner.Term.eval_choice (term, info) [] with
