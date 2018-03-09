@@ -3,6 +3,7 @@
 (executable
   ((name llopt)
    (public_name llopt)
+   (flags (:standard -w A-44 -safe-string))
    (libraries
      (cmdliner
       llvm
