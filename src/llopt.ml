@@ -1,29 +1,38 @@
-let ctxt = Llvm.global_context ()
-let init = lazy (Llvm_all_backends.initialize ())
+let get_opt f x = function
+  | None -> f x
+  | Some v -> v
 
-let get_triple () =
-  Lazy.force init;
-  Llvm_target.Target.default_triple ()
+let ctxt = Llvm.global_context ()
+
+let get_triple m =
+  match Llvm.target_triple m with
+  | "" -> Llvm_target.Target.default_triple ()
+  | triple -> triple
 
 let get_target ~triple =
   let target = Llvm_target.Target.by_triple triple in
-  let reloc_mode = Llvm_target.RelocMode.PIC in
-  Llvm_target.TargetMachine.create ~triple ~reloc_mode target
+  Llvm_target.TargetMachine.create ~triple target
 
-let optimize ~level ~lto m =
-  let triple = get_triple () in
+let get_layout ~target m =
+  match Llvm.data_layout m with
+  | "" ->
+      let layout = Llvm_target.TargetMachine.data_layout target in
+      Llvm_target.DataLayout.as_string layout
+  | layout ->
+      layout
+
+let optimize ~level ~lto ~triple ~datalayout m =
+  Llvm_all_backends.initialize ();
+  let triple = get_opt get_triple m triple in
   let target = get_target ~triple in
-  let layout = Llvm_target.TargetMachine.data_layout target in
-  let layout = Llvm_target.DataLayout.as_string layout in
+  let datalayout = get_opt (get_layout ~target) m datalayout in
   Llvm.set_target_triple triple m;
-  Llvm.set_data_layout layout m;
+  Llvm.set_data_layout datalayout m;
   let pm = Llvm.PassManager.create () in
-  let pm_f = Llvm.PassManager.create_function m in (* TODO: Is this useful ? *)
-  Llvm_target.TargetMachine.add_analysis_passes pm target; (* TODO Is this useful ? *)
+  Llvm_target.TargetMachine.add_analysis_passes pm target;
   let b = Llvm_passmgr_builder.create () in
   Llvm_passmgr_builder.set_opt_level level b;
   Llvm_passmgr_builder.populate_module_pass_manager pm b;
-  Llvm_passmgr_builder.populate_function_pass_manager pm_f b; (* TODO Is this useful ? *)
   if lto then begin
     Llvm_passmgr_builder.populate_lto_pass_manager
       ~internalize:true
@@ -34,11 +43,11 @@ let optimize ~level ~lto m =
   ignore (Llvm.PassManager.run_module m pm);
   Llvm.PassManager.dispose pm
 
-let main level lto file =
+let main level lto triple datalayout file =
   let buf = Llvm.MemoryBuffer.of_file file in
   let m = Llvm_irreader.parse_ir ctxt buf in
   begin match level with
-  | (0 | 1 | 2 | 3) as level -> optimize ~level ~lto m
+  | (0 | 1 | 2 | 3) as level -> optimize ~level ~lto ~triple ~datalayout m
   | -1 -> ()
   | n -> Printf.eprintf "Error: %d is not a valid optimization level." n
   end;
@@ -49,9 +58,15 @@ let term =
   let doc_opt = "Sets the optimization level. \
                  Setting it to -1 disables all optimizations." in
   let doc_lto = "Enables Link Time Optimizations." in
+  let doc_triple = "Sets the target triple string. \
+                    See: https://llvm.org/docs/LangRef.html#target-triple" in
+  let doc_datalayout = "Sets the target data layout string. \
+                        See: https://llvm.org/docs/LangRef.html#data-layout" in
   Cmdliner.Term.pure main $
   Cmdliner.Arg.(value & opt int 0 & info ~doc:doc_opt ["opt"]) $
   Cmdliner.Arg.(value & flag & info ~doc:doc_lto ["lto"]) $
+  Cmdliner.Arg.(value & opt (some string) None & info ~doc:doc_triple ["triple"]) $
+  Cmdliner.Arg.(value & opt (some string) None & info ~doc:doc_datalayout ["datalayout"]) $
   Cmdliner.Arg.(required & pos 0 (some file) None & info ~docv:"FILE" [])
 
 let info =
