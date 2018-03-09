@@ -21,18 +21,24 @@ let get_layout ~target m =
   | layout ->
       layout
 
+let optimize_target ~triple ~datalayout pm b m =
+  match get_opt get_triple m triple with
+  | "" ->
+      ()
+  | triple ->
+      Llvm_all_backends.initialize ();
+      let target = get_target ~triple in
+      let datalayout = get_opt (get_layout ~target) m datalayout in
+      Llvm.set_target_triple triple m;
+      Llvm.set_data_layout datalayout m;
+      Llvm_target.TargetMachine.add_analysis_passes pm target;
+      Llvm_passmgr_builder.populate_module_pass_manager pm b
+
 let optimize ~level ~lto ~triple ~datalayout m =
-  Llvm_all_backends.initialize ();
-  let triple = get_opt get_triple m triple in
-  let target = get_target ~triple in
-  let datalayout = get_opt (get_layout ~target) m datalayout in
-  Llvm.set_target_triple triple m;
-  Llvm.set_data_layout datalayout m;
   let pm = Llvm.PassManager.create () in
-  Llvm_target.TargetMachine.add_analysis_passes pm target;
   let b = Llvm_passmgr_builder.create () in
+  optimize_target ~triple ~datalayout pm b m;
   Llvm_passmgr_builder.set_opt_level level b;
-  Llvm_passmgr_builder.populate_module_pass_manager pm b;
   if lto then begin
     Llvm_passmgr_builder.populate_lto_pass_manager
       ~internalize:true
