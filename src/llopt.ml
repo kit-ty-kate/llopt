@@ -40,7 +40,10 @@ let optimize ~level ~lto ~triple ~datalayout m =
       pm
       b;
   end;
-  ignore (Llvm.PassManager.run_module m pm);
+  begin match Llvm.PassManager.run_module m pm with
+  | true -> () (* Ignored info: module modified by optimizer *)
+  | false -> () (* Ignored info: module not modified by optimizer *)
+  end;
   Llvm.PassManager.dispose pm
 
 let main level lto triple datalayout file =
