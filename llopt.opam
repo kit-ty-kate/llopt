@@ -7,7 +7,7 @@ homepage: "https://github.com/kit-ty-kate/llopt"
 dev-repo: "git://github.com/kit-ty-kate/llopt.git"
 bug-reports: "https://github.com/kit-ty-kate/llopt/issues"
 tags: ["llvm" "optimization" "test" "testing" "compiler"]
-build: ["jbuilder" "build" "-p" "llopt"]
+build: ["jbuilder" "build" "-p" name "-j" jobs]
 depends: [
   "jbuilder" {build}
   "llvm" {>= "3.5"}
